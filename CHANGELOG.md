@@ -1,3 +1,8 @@
+## **[1.0.3] - 02/23/2026**
+- chore: remove .pnp.* from .gitignore to streamline ignored files
+- chore: update .gitignore, add .pnp.cjs, and yarn.lock for improved dependency management
+- fix: env vars RELIZ_YES/RELIZ_NO_GIT_FLOW, pre-release version bump, plugin loading, defaults
+
 ## **[1.0.2] - 02/17/2026**
 - fix: update getLatestTag and add resolveToCommit function for improved tag resolution
 - delete: remove reset-to-first-commit.sh script
