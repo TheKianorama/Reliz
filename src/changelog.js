@@ -7,16 +7,24 @@ const { execSync } = require('child_process');
 /**
  * Format date for changelog (Persian or Gregorian).
  * @param {Date} date
- * @param {string} locale - e.g. 'fa-IR' or 'en-US'
+ * @param {string} locale - e.g. 'en-US' or 'fa-IR'
  * @returns {string}
  */
-function formatDate(date, locale = 'fa-IR') {
+function formatDate(date, locale = 'en-US') {
   if (locale === 'fa-IR' || locale.startsWith('fa')) {
-    return date.toLocaleDateString('fa-IR-u-ca-persian', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    try {
+      return date.toLocaleDateString('fa-IR-u-ca-persian', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    } catch (_) {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    }
   }
   return date.toLocaleDateString('en-US', {
     year: 'numeric',

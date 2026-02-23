@@ -25,10 +25,20 @@ function loadPlugins(cwd, pluginPaths) {
   for (const p of list) {
     if (!p || typeof p !== 'string') continue;
     try {
-      const resolved = path.isAbsolute(p) ? p : path.resolve(cwd, p);
-      const mod = require(resolved);
+      let mod;
+      if (path.isAbsolute(p)) {
+        mod = require(p);
+      } else if (!p.includes('/') && !p.includes('\\') && p !== '.' && p !== '..') {
+        try {
+          mod = require(p);
+        } catch (_) {
+          mod = require(path.resolve(cwd, p));
+        }
+      } else {
+        mod = require(path.resolve(cwd, p));
+      }
       plugins.push({
-        name: typeof mod.name === 'string' ? mod.name : p,
+        name: typeof mod.name === 'string' ? mod.name : (path.basename(p, path.extname(p)) || p),
         init: typeof mod.init === 'function' ? mod.init : undefined,
         getLatestVersion: typeof mod.getLatestVersion === 'function' ? mod.getLatestVersion : undefined,
         bump: typeof mod.bump === 'function' ? mod.bump : undefined,
