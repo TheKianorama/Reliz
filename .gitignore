@@ -5,7 +5,6 @@ node_modules/
 .yarn/cache
 .yarn/install-state.gz
 .yarn/unplugged
-.pnp.*
 
 # OS
 .DS_Store
