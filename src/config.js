@@ -18,7 +18,7 @@ function getDefaults() {
     },
     releaseBranchPrefix: 'release/',
     changelog: {
-      dateLocale: 'fa-IR',
+      dateLocale: 'en-US',
       path: 'CHANGELOG.md',
       template: null,
       command: null,
@@ -105,6 +105,7 @@ function loadFromFile(cwd, explicitPath) {
   try {
     return JSON.parse(fs.readFileSync(found, 'utf8'));
   } catch (e) {
+    console.warn('Reliz: Could not parse config file:', found, e.message);
     return {};
   }
 }
@@ -203,8 +204,8 @@ function loadConfig(cwd, argv) {
       bump: parsed.bump || envOverrides.bump || null,
       ci: isCi,
       dryRun: parsed.dryRun || config.dryRun === true,
-      noGitFlow: parsed.noGitFlow || false,
-      yes: parsed.yes || false,
+      noGitFlow: parsed.noGitFlow || envOverrides.noGitFlow || false,
+      yes: parsed.yes || envOverrides.yes || false,
       config: parsed.config,
       preid: preid || null,
       noIncrement: parsed.noIncrement || false,

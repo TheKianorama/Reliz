@@ -6,6 +6,16 @@ const fs = require('fs');
 const BUMP_TYPES = ['patch', 'minor', 'major', 'hotfix'];
 
 /**
+ * Strip prerelease suffix (e.g. 1.2.3-beta.1 -> 1.2.3) for numeric parsing.
+ * @param {string} version
+ * @returns {string}
+ */
+function stripPrerelease(version) {
+  const dash = version.indexOf('-');
+  return dash >= 0 ? version.slice(0, dash) : version;
+}
+
+/**
  * Increase version by type. If preId is set (e.g. 'alpha', 'beta', 'rc'), appends prerelease segment.
  * @param {string} currentVersion
  * @param {'patch'|'minor'|'major'|'hotfix'} type
@@ -13,7 +23,8 @@ const BUMP_TYPES = ['patch', 'minor', 'major', 'hotfix'];
  * @returns {string}
  */
 function increaseVersion(currentVersion, type = 'patch', preId = null) {
-  const parts = currentVersion.split('.').map(Number);
+  const baseVersion = stripPrerelease(currentVersion);
+  const parts = baseVersion.split('.').map(Number);
   const [major = 0, minor = 0, patch = 0, build = 0] = parts;
 
   let base;
@@ -54,7 +65,15 @@ function increaseVersion(currentVersion, type = 'patch', preId = null) {
  */
 function getCurrentVersion(cwd) {
   const pkgPath = path.join(cwd, 'package.json');
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  if (!fs.existsSync(pkgPath)) {
+    throw new Error('package.json not found in the current directory. Run reliz from your project root.');
+  }
+  let pkg;
+  try {
+    pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  } catch (e) {
+    throw new Error('package.json is not valid JSON. ' + (e.message || String(e)));
+  }
   return {
     version: pkg.version || '0.0.0',
     name: pkg.name || 'project'
@@ -94,13 +113,22 @@ function suggestBumpFromCommits(commitMessages) {
  */
 function setPackageVersion(cwd, newVersion) {
   const pkgPath = path.join(cwd, 'package.json');
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  if (!fs.existsSync(pkgPath)) {
+    throw new Error('package.json not found in the current directory.');
+  }
+  let pkg;
+  try {
+    pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  } catch (e) {
+    throw new Error('package.json is not valid JSON. ' + (e.message || String(e)));
+  }
   pkg.version = newVersion;
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 }
 
 module.exports = {
   increaseVersion,
+  stripPrerelease,
   getCurrentVersion,
   setPackageVersion,
   suggestBumpFromCommits,

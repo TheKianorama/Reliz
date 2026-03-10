@@ -86,7 +86,7 @@ Create `.reliz.json` in the project root (or use `package.json` under `"reliz"`)
   "branches": { "main": "main", "develop": "develop" },
   "releaseBranchPrefix": "release/",
   "changelog": {
-    "dateLocale": "fa-IR",
+    "dateLocale": "en-US",
     "path": "CHANGELOG.md",
     "command": null,
     "releaseNotesCommand": null,
@@ -135,7 +135,7 @@ Create `.reliz.json` in the project root (or use `package.json` under `"reliz"`)
 | `git.pushArgs` | Extra args for `git push` | `["--follow-tags"]` |
 | `branches.main` / `branches.develop` | Branch names | `main`, `develop` |
 | `releaseBranchPrefix` | Prefix for release branches | `release/` |
-| `changelog.dateLocale` | `fa-IR` (Persian) or `en-US` | `fa-IR` |
+| `changelog.dateLocale` | `en-US` (Gregorian) or `fa-IR` (Persian) | `en-US` |
 | `changelog.path` | Changelog file path | `CHANGELOG.md` |
 | `changelog.command` | Shell command for changelog (vars: `${from}`, `${to}`, `${version}`, `${latestVersion}`) | `null` |
 | `changelog.releaseNotesCommand` | Shell command for release notes body | `null` |

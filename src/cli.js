@@ -105,7 +105,7 @@ function run() {
     })
     .then(() => {
       const newVersion = noIncrement ? currentVersion : increaseVersion(currentVersion, bump || 'patch', preId);
-      const locale = config.changelog?.dateLocale || 'fa-IR';
+      const locale = config.changelog?.dateLocale || 'en-US';
       const dateStr = formatDate(new Date(), locale);
 
       if (dryRun) {

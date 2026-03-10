@@ -23,7 +23,7 @@
     "changelog": {
       "type": "object",
       "properties": {
-        "dateLocale": { "type": "string", "enum": ["fa-IR", "en-US"], "default": "fa-IR" },
+        "dateLocale": { "type": "string", "enum": ["fa-IR", "en-US"], "default": "en-US" },
         "path": { "type": "string", "default": "CHANGELOG.md" },
         "template": { "type": ["string", "null"] },
         "command": { "type": ["string", "null"], "description": "Shell command for changelog text; vars: ${from}, ${to}, ${version}, ${latestVersion}" },
