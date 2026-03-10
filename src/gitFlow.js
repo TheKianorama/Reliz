@@ -22,7 +22,14 @@ function syncBranches(context) {
   if (currentBranch !== develop) {
     execSync(`git branch --force ${develop} origin/${develop}`, { stdio: 'inherit' });
   } else {
-    console.log('Skipping force update for develop (currently checked out).');
+    try {
+      execSync(`git merge --ff-only origin/${develop}`, { stdio: 'inherit' });
+    } catch (_) {
+      throw new Error(
+        `Local '${develop}' has diverged from 'origin/${develop}'. ` +
+        `Please resolve manually (git pull --rebase or git merge) before running reliz.`
+      );
+    }
   }
   console.log('Branches are up to date.');
 }
