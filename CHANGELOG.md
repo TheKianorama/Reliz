@@ -1,3 +1,9 @@
+## **[1.1.0] - 03/11/2026**
+- feat: Improve tag retrieval logic in getLatestTag function to support git-flow
+- feat: Enhance release summary output in CLI with formatted details
+- fix: Improve error handling for non-fast-forward pushes in gitFlow
+- feat: Enhance branch synchronization and error handling in gitFlow
+
 ## **[1.0.3] - 02/23/2026**
 - chore: remove .pnp.* from .gitignore to streamline ignored files
 - chore: update .gitignore, add .pnp.cjs, and yarn.lock for improved dependency management
