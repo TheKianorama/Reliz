@@ -22,9 +22,9 @@ function getRepoFromOrigin(cwd) {
  * @param {object} opts - { owner, repo, tagName, name, body, token, draft?, prerelease? }
  * @returns {Promise<string|null>} Release html_url
  */
-function createRelease(opts) {
+function createRelease(opts, maxRedirects = 3) {
   const { owner, repo, tagName, name, body, token } = opts;
-  const path = `/repos/${owner}/${repo}/releases`;
+  const initialUrl = `https://api.github.com/repos/${owner}/${repo}/releases`;
   const payload = {
     tag_name: tagName,
     name: name || tagName,
@@ -34,37 +34,52 @@ function createRelease(opts) {
   };
   const bodyStr = JSON.stringify(payload);
 
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'api.github.com',
-      path,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'reliz',
-        'Authorization': `token ${token}`,
-        'Content-Length': Buffer.byteLength(bodyStr)
-      }
-    }, (res) => {
-      let data = '';
-      res.on('data', chunk => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const json = JSON.parse(data);
-            resolve(json.html_url || null);
-          } catch (_) {
-            resolve(null);
-          }
-        } else {
-          reject(new Error(`GitHub API ${res.statusCode}: ${data}`));
+  function doRequest(url, redirectsLeft) {
+    const parsed = new URL(url);
+    return new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: parsed.hostname,
+        path: parsed.pathname + parsed.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'reliz',
+          'Authorization': `token ${token}`,
+          'Content-Length': Buffer.byteLength(bodyStr)
         }
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              const json = JSON.parse(data);
+              resolve(json.html_url || null);
+            } catch (_) {
+              resolve(null);
+            }
+          } else if ([301, 302, 307, 308].includes(res.statusCode) && redirectsLeft > 0) {
+            let redirectUrl = res.headers.location;
+            if (!redirectUrl) {
+              try { redirectUrl = JSON.parse(data).url; } catch (_) {}
+            }
+            if (redirectUrl) {
+              resolve(doRequest(redirectUrl, redirectsLeft - 1));
+            } else {
+              reject(new Error(`GitHub API ${res.statusCode} redirect with no target URL`));
+            }
+          } else {
+            reject(new Error(`GitHub API ${res.statusCode}: ${data}`));
+          }
+        });
       });
+      req.on('error', reject);
+      req.write(bodyStr);
+      req.end();
     });
-    req.on('error', reject);
-    req.write(bodyStr);
-    req.end();
-  });
+  }
+
+  return doRequest(initialUrl, maxRedirects);
 }
 
 /**
