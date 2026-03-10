@@ -10,7 +10,14 @@ function getLatestTag() {
   try {
     return execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim();
   } catch (_) {
-    return null;
+    // In git-flow, tags live on main and are not reachable from develop.
+    // Fall back to the most recently created tag across all branches.
+    try {
+      const tag = execSync('git tag --sort=-creatordate', { encoding: 'utf8' }).trim().split('\n')[0];
+      return tag || null;
+    } catch (_) {
+      return null;
+    }
   }
 }
 
