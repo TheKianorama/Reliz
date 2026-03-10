@@ -195,10 +195,39 @@ function run() {
       return releasePromise.then(() => runPluginLifecycleAsync(plugins, 'release', context)).then(() => {
         runHooks(config.hooks?.afterRelease, context, false);
         runPluginLifecycle(plugins, 'afterRelease', context);
+        return context;
       });
     })
-    .then(() => {
-      console.log('Release completed successfully.');
+    .then((context) => {
+      const { projectName, tagName, dateStr, commits } = context;
+
+      const bold = (s) => `\x1b[1m${s}\x1b[0m`;
+      const cyan = (s) => `\x1b[36m${s}\x1b[0m`;
+      const green = (s) => `\x1b[32m${s}\x1b[0m`;
+      const dim = (s) => `\x1b[90m${s}\x1b[0m`;
+
+      const hashName = projectName.replace(/-/g, '_');
+      const commitLines = commits.map(c => `  ${dim('•')} ${c}`).join('\n');
+      const w = 20;
+      const hr = dim('─'.repeat(w));
+
+      const summary = [
+        '',
+        `  ${cyan('╭')}${cyan('─'.repeat(w))}${cyan('╮')}`,
+        `  ${cyan('│')} 📦 ${bold(cyan('R E L I Z'))}${' '.repeat(Math.max(0, w - 14))}${cyan('│')}`,
+        `  ${cyan('╰')}${cyan('─'.repeat(w))}${cyan('╯')}`,
+        '',
+        `  ${bold(`#${hashName}`)}`,
+        `  ${hr}`,
+        `  ${green(`[${tagName}]`)} ${dim('—')} ${dateStr}`,
+        `  ${hr}`,
+        commitLines,
+        '',
+        `  ${green('✔')} ${bold('Release completed.')}`,
+        ''
+      ].join('\n');
+
+      console.log(summary);
     })
     .catch((err) => {
       console.error('Error:', err.message);
