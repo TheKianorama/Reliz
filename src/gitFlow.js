@@ -101,8 +101,33 @@ function performGitFlowRelease(context) {
     execSync(`GIT_MERGE_AUTOEDIT=no GIT_EDITOR=true git flow release finish -m "${tagMsg}" ${newVersion}`, { stdio: 'inherit', cwd });
 
     console.log('Pushing all branches and tags...');
-    execSync(`git push origin ${develop}${pushSuffix}`, { stdio: 'inherit', cwd });
-    execSync(`git push origin ${main}${pushSuffix}`, { stdio: 'inherit', cwd });
+
+    try {
+      execSync(`git push origin ${develop}${pushSuffix}`, { stdio: 'inherit', cwd });
+    } catch (pushErr) {
+      if (pushErr.message && pushErr.message.includes('non-fast-forward')) {
+        console.log(`Push of '${develop}' rejected (non-fast-forward). Pulling with rebase and retrying...`);
+        execSync(`git checkout ${develop}`, { stdio: 'inherit', cwd });
+        execSync(`git pull --rebase origin ${develop}`, { stdio: 'inherit', cwd });
+        execSync(`git push origin ${develop}${pushSuffix}`, { stdio: 'inherit', cwd });
+      } else throw pushErr;
+    }
+
+    try {
+      execSync(`git push origin ${main}${pushSuffix}`, { stdio: 'inherit', cwd });
+    } catch (pushErr) {
+      if (pushErr.message && pushErr.message.includes('non-fast-forward')) {
+        console.log(`Push of '${main}' rejected (non-fast-forward). Pulling with rebase and retrying...`);
+        execSync(`git checkout ${main}`, { stdio: 'inherit', cwd });
+        execSync(`git pull --rebase origin ${main}`, { stdio: 'inherit', cwd });
+        execSync(`git push origin ${main}${pushSuffix}`, { stdio: 'inherit', cwd });
+      } else throw pushErr;
+    }
+
+    console.log(`Cleaning up remote release branch: ${releaseBranch}...`);
+    try {
+      execSync(`git push origin --delete ${releaseBranch}`, { stdio: 'inherit', cwd });
+    } catch (_) {}
 
     const tagPrefix = config.tag?.prefix ?? 'v';
     const tagName = tagPrefix ? `${tagPrefix}${newVersion}` : newVersion;
