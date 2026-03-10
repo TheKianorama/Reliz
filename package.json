@@ -33,7 +33,7 @@
   ],
   "author": "Jaawaad",
   "license": "MIT",
-  "repository": "github:jaawaad/Reliz",
+  "repository": "github:TheKianorama/Reliz",
   "engines": {
     "node": ">=14.0.0"
   }
