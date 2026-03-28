@@ -4,51 +4,56 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 /**
- * @returns {string|null} Latest tag name or null if none (e.g. "v1.0.1" or "1.0.1")
+ * @returns {string|null} Latest tag name or null if none
  */
 function getLatestTag() {
+  let reachableTag = null;
   try {
-    const out = execSync('git describe --tags --abbrev=0', {
+    reachableTag = execSync('git describe --tags --abbrev=0', {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore']
     }).trim();
-    const match = out.match(/^(.+?)-\d+-g[a-f0-9]+$/);
-    const baseRef = match ? match[1] : out;
-    const sha = resolveToCommit(baseRef) || resolveToCommit(out);
-    if (sha) {
-      const tagsAt = execSync('git tag -l --points-at ' + JSON.stringify(sha), {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore']
-      }).trim().split('\n').filter(Boolean);
-      if (tagsAt.length > 0) return tagsAt[0];
-    }
-    return match ? match[1] : out;
+  } catch (_) {}
+
+  // In git-flow, tags live on main and may not be reachable from develop.
+  let globalTag = null;
+  try {
+    globalTag = execSync('git tag --sort=-creatordate', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim().split('\n')[0] || null;
+  } catch (_) {}
+
+  if (!reachableTag) return globalTag;
+  if (!globalTag) return reachableTag;
+  if (reachableTag === globalTag) return reachableTag;
+
+  try {
+    const reachableDate = execSync(`git log -1 --format=%ct ${JSON.stringify(reachableTag)}`, {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    const globalDate = execSync(`git log -1 --format=%ct ${JSON.stringify(globalTag)}`, {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    return Number(globalDate) > Number(reachableDate) ? globalTag : reachableTag;
   } catch (_) {
-    return null;
+    return globalTag || reachableTag;
   }
 }
 
 /**
- * Resolve a tag or ref to a commit SHA (avoids "externally known" warning in git log).
+ * Resolve a tag or ref to a commit SHA.
  * @param {string} ref
  * @returns {string|null} SHA or null
  */
 function resolveToCommit(ref) {
   try {
-    const refWithCommit = ref + '^{commit}';
-    return execSync('git rev-parse --verify ' + JSON.stringify(refWithCommit), {
+    return execSync('git rev-parse --verify ' + JSON.stringify(ref + '^{commit}'), {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore']
     }).trim();
   } catch (_) {
-    // In git-flow, tags live on main and are not reachable from develop.
-    // Fall back to the most recently created tag across all branches.
-    try {
-      const tag = execSync('git tag --sort=-creatordate', { encoding: 'utf8' }).trim().split('\n')[0];
-      return tag || null;
-    } catch (_) {
-      return null;
-    }
+    return null;
   }
 }
 
