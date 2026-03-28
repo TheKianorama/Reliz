@@ -1,3 +1,8 @@
+## **[1.1.1] - 03/28/2026**
+- chore: update yarn.lock to reflect changes in dependencies and remove unnecessary metadata
+- chore: update CI workflow to allow write permissions for contents and add GitHub release creation step
+- refactor: improve getLatestTag function to handle unreachable tags and prioritize global tags
+
 ## **[1.1.0] - 03/11/2026**
 - feat: Improve tag retrieval logic in getLatestTag function to support git-flow
 - feat: Enhance release summary output in CLI with formatted details
