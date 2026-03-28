@@ -4,13 +4,11 @@ on:
   push:
     tags:
       - 'v*'
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
   publish:
@@ -26,6 +24,13 @@ jobs:
       - run: npm install
       - run: npm run build --if-present
       - run: npm run test --if-present
-      - run: npm publish --access public --provenance
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        run: gh release create ${{ github.ref_name }} --generate-notes --title "${{ github.ref_name }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
