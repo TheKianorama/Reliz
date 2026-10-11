@@ -4,41 +4,66 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 /**
+ * Nearest tag reachable from a ref.
+ * @param {string} ref
+ * @returns {string|null} Tag name or null if none
+ */
+function describeTag(ref) {
+  try {
+    return execSync('git describe --tags --abbrev=0 ' + JSON.stringify(ref), {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim() || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * @param {string} ref
+ * @returns {number} Commit timestamp in seconds, or -Infinity if unknown
+ */
+function getCommitTime(ref) {
+  try {
+    return Number(execSync(`git log -1 --format=%ct ${JSON.stringify(ref)}`, {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
+    }).trim());
+  } catch (_) {
+    return -Infinity;
+  }
+}
+
+/**
+ * @param {object} [options]
+ * @param {boolean} [options.gitFlow] - on develop, also consider the latest tag on main
+ * @param {{ main?: string, develop?: string }} [options.branches]
  * @returns {string|null} Latest tag name or null if none
  */
-function getLatestTag() {
-  let reachableTag = null;
-  try {
-    reachableTag = execSync('git describe --tags --abbrev=0', {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-  } catch (_) {}
+function getLatestTag({ gitFlow = false, branches = {} } = {}) {
+  const reachableTag = describeTag('HEAD');
+  if (!gitFlow || getCurrentBranch() !== (branches?.develop || 'develop')) return reachableTag;
 
-  // In git-flow, tags live on main and may not be reachable from develop.
-  let globalTag = null;
-  try {
-    globalTag = execSync('git tag --sort=-creatordate', {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).trim().split('\n')[0] || null;
-  } catch (_) {}
+  // In git-flow, the latest release tag lives on main and may not be
+  // back-merged into develop yet. Only main's tags count here: a tag from an
+  // unrelated branch (e.g. a parallel prerelease line) must not become the
+  // base of the changelog.
+  const main = branches?.main || 'main';
+  const candidates = [
+    reachableTag,
+    describeTag(`refs/heads/${main}`),
+    describeTag(`refs/remotes/origin/${main}`)
+  ].filter(Boolean);
 
-  if (!reachableTag) return globalTag;
-  if (!globalTag) return reachableTag;
-  if (reachableTag === globalTag) return reachableTag;
-
-  try {
-    const reachableDate = execSync(`git log -1 --format=%ct ${JSON.stringify(reachableTag)}`, {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-    const globalDate = execSync(`git log -1 --format=%ct ${JSON.stringify(globalTag)}`, {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-    return Number(globalDate) > Number(reachableDate) ? globalTag : reachableTag;
-  } catch (_) {
-    return globalTag || reachableTag;
+  let latestTag = null;
+  let latestTime = -Infinity;
+  for (const tag of candidates) {
+    const time = getCommitTime(tag);
+    if (latestTag === null || time > latestTime) {
+      latestTag = tag;
+      latestTime = time;
+    }
   }
+  return latestTag;
 }
 
 /**
@@ -59,10 +84,11 @@ function resolveToCommit(ref) {
 
 /**
  * @param {string} [fromTag] - optional, defaults to latest tag
+ * @param {object} [latestTagOptions] - passed to getLatestTag when fromTag is not given
  * @returns {string[]}
  */
-function getNewCommits(fromTag = null) {
-  const lastTag = fromTag !== undefined && fromTag !== null ? fromTag : getLatestTag();
+function getNewCommits(fromTag = null, latestTagOptions = {}) {
+  const lastTag = fromTag !== undefined && fromTag !== null ? fromTag : getLatestTag(latestTagOptions);
   try {
     if (!lastTag) throw new Error('No tag');
     const fromRev = resolveToCommit(lastTag) || lastTag;

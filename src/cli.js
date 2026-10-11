@@ -24,6 +24,7 @@ function run() {
   const isCi = config.ci ?? argv.ci;
   const yes = argv.yes;
   const useGitFlow = (config.gitFlow !== false) && !argv.noGitFlow;
+  const tagOptions = { gitFlow: useGitFlow, branches: config.branches };
   const verbose = argv.verbose || false;
 
   if (dryRun) console.log('Running in dry-run mode. No changes will be made.');
@@ -45,8 +46,8 @@ function run() {
 
   if (argv.changelog) {
     ensureOriginRemote();
-    const commits = getNewCommits();
-    const latestTag = getLatestTag();
+    const commits = getNewCommits(null, tagOptions);
+    const latestTag = getLatestTag(tagOptions);
     const context = {
       cwd,
       config,
@@ -79,7 +80,7 @@ function run() {
     bump = config.bump || 'patch';
   }
 
-  const commits = getNewCommits();
+  const commits = getNewCommits(null, tagOptions);
   let suggested = null;
   if (config.conventionalCommits) {
     suggested = suggestBumpFromCommits(commits);
@@ -146,7 +147,7 @@ function run() {
       config.tag = tagConfig;
 
       const expectedTagName = buildTagName(resolvedPrefix, newVersion);
-      const latestTag = getLatestTag();
+      const latestTag = getLatestTag(tagOptions);
       const context = {
         cwd,
         config,
